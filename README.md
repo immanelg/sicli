@@ -1,4 +1,4 @@
-# SiCli
+# Sicli
 ## Introduction
 `sicli` is a package to build command line utilities in the declarative way, using standard Python type hints. Uses `argparse` under the hood and basically let's you write `argparse` in a better way.
 
