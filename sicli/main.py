@@ -69,8 +69,8 @@ class Sicli:
             raise RuntimeError("Tuples are unsupported, use `list` instead")
 
         elif issubclass(type_annotation, Enum):
-            choices = tuple(c.value for c in type_annotation)
-            kwargs = {"choices": choices} | kwargs
+            choices = tuple(c for c in type_annotation)
+            kwargs = {"choices": choices, "type": type_annotation} | kwargs
 
         elif issubclass(type_annotation, bool):
             # case when boolean flag
