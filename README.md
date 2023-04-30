@@ -108,7 +108,7 @@ def example(
 That way your editor won't complain about types.
 
 #### Limitations
-Note that arbitrary nesting of types is not supported (Like in `list[Annotated[Literal[1, 2, 3], {}]]`). Only `Annotated` can wrap other generic types..
+Note that arbitrary nesting of types is not supported (Like in `list[Annotated[Literal[1, 2, 3], {}]]`). Only `Annotated` can wrap other generic types.
 
 ## Requirements
 No dependencies are needed, only pure Python ≥ `3.10`.
