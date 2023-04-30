@@ -1,92 +1,132 @@
 # Sicli
 ## Introduction
-`sicli` is a package to build command line utilities in the declarative way, using standard Python type hints. Uses `argparse` under the hood and basically let's you write `argparse` in a better way.
+`sicli` is a package to build command line utilities in a simple, dclarative way, using standard Python type hints, without unecessary complexity of standard `argparse` module. It uses `argparse` under the hood, so there's no external dependencies. Note that if you want to build a very complex CLI, you rather need to use a framework like [Click](https://click.palletsprojects.com/en) or [Typer](https://typer.tiangolo.com/).
 
 ## Quickstart
 Let's create a trivial example:
 ```python
-# congrat.py
-from sicli import Sicli
+
+from sicli import cli
 
 from typing import Literal, Annotated
 from pathlib import Path
 
-def congratulate_everyone(
+
+@cli(epilog="And that's how you make people happy")
+def congratulate(
     reason: str,
-    language: Literal["en", "fr", "nv"] = "en",
+    language: Literal["en", "fr"] = "en",
+    numbers: Annotated[list[float], {"help": "Throw me some numbers"}] = [],
     *,
-    output: Annotated[Path, dict(help="File to output congratulations")],
-    loud: Annotated[bool, dict(help="IF ENABLED THEN SCREAM")],
+    output: Path,
+    loud: Annotated[bool, {"help": "SCREAM"}],
     names: list[str] = [],
 ) -> None:
-    if language in {"fr", "nv"}:
-        print("But I don't speak french... And navajo...")
+    """
+    This program congratulates everyone if you haven't guessed.
+    By the way, this doctring is the help message for the CLI.
+    """
+    if language == "fr":
+        print("But I don't speak french...")
         return
     for name in names:
-        congratulation = f"Happy {reason}, {name}!"
         if loud:
-            congratulation = congratulation.upper()
-        print(congratulation)
+            print(f"happy {reason}, {name}!!1!".upper())
+        else:
+            print(f"happy {reason}, {name}.")
     print("Writing to file", output.resolve())
+    print(f"Here's the sum of your numbers: {sum(numbers)}")
+
 
 if __name__ == "__main__":
-    cli = Sicli(prog="Congratulator")
-    cli(congratulate_everyone)
+    congratulate()
 ```
 
-This produces the following output:
+This produces the following help output:
 ```
-$ python3 -m congrat --help
-usage: Congratulator [-h] [--output OUTPUT] [--loud] [--names [NAMES ...]] reason [{en,fr,nv}]
+$ python3 -m examples.congrat --help
+usage: congrat.py [-h] [--output OUTPUT] [--loud] [--names [NAMES ...]] reason [{en,fr}] [numbers ...]
 
-Built with Sicli™
+This program congratulates everyone if you haven't guessed. By the way, this doctring is the help message for the CLI.
 
 positional arguments:
   reason
-  {en,fr,nv}
+  {en,fr}
+  numbers              Throw me some numbers
 
 options:
-  -h, --help            show this help message and exit
-  --output OUTPUT, -o OUTPUT
-                        File to output congratulations
-  --loud, -l            IF ENABLED THEN SCREAM
-  --names [NAMES ...], -n [NAMES ...]
+  -h, --help           show this help message and exit
+  --output OUTPUT
+  --loud               SCREAM
+  --names [NAMES ...]
+
+And that's how you make people happy
 ```
-Let's test it:
+Let's now test it:
 ```
-$ python3 -m congrat 'New Year' en --loud -o ./newyear.txt --names Maria Katherine Julia
-HAPPY NEW YEAR, MARIA!
-HAPPY NEW YEAR, KATHERINE!
-HAPPY NEW YEAR, JULIA!
-Writing to file /home/alex/repos/sicli/newyear.txt
+$ python3 -m examples.congrat 'New Year' en 1 2 3 --loud --output ./here.txt --names Elizabeth Maria
+HAPPY NEW YEAR, ELIZABETH!!1!
+HAPPY NEW YEAR, MARIA!!1!
+Writing to file /home/alex/repos/sicli/here.txt
+Here's the sum of your numbers: 6.0
 ```
 
 ## Usage
+### Creating endpoint
+As you can see, you can just wrap your function with `cli` decorator and then call it. It will parse `sys.argv` and call wrapped function with the appropriate arguments.
 ### Arguments vs options
-`sicli` interprets regular arguments as positional arguments and keyword-only (after `*`) arguments as options.
+- Regular arguments are mapped to positional arguments in CLI.
+- Keyword-only arguments (after `*`) are mapped to options.
 ### Default values
-For both positional and optional arguments, default values in functions are being interpreted as `default=...` argument for `argparse`' `argparse.ArgumentParser.add_argument`. Option `nargs="?"` (zero or one arg) is set for non-list types.
+Default values for both types of arguments are mapped, as your intuition would suggest, to default arguments in CLI.
+Internally, they are passed to  `default` argument in `argparse.ArgumentParser.add_argument` and `nargs="?"` is passed for non-list types.
 ### Types
-This is the interesting part. The set of types that `sicli` can interpret is limited to:
-- `list[T]` passes `nargs='*'` and `type=T` to `argparse.ArgumentParser.add_argument`.
-- `Literal[A, B, ...]` (of the same type)  passes `choices=(A, B, ...)` and `type=type(A)`.
-- `Annotated[T, opts]` unwraps `T` (recursively) and merges `opts` to generated kwargs (this is the way to pass arbitrary kwargs to `argparse.ArgumentParser.add_argument`).
-- `tuple[...]` is not supported because `argparse` doesn't directly support `nargs` with heterogeneous types. It would require a custom `action`.
-- Note that nesting of types is not supported (Like `list[Literal[Annotated[int, {}]]]` won't work). Only `Annotated` can wrap something.
-- `bool` is being interpreted as flag (`"store_true"`).
-- Any other type supported by `argparse` will be directly passed to `type`.
-### `Sicli` object
-`sicli.Sicli` wraps `argparse.ArgumentParser`, so you can pass any argument you want as `**kwargs`.
-### `Sicli.__call__`
-You can pass CLI arguments to it directly instead of parsing `sys.argv`. For example, for testing.
-```python
-cli(congratulate_everyone, "'New Year' en --loud -o  blah blah blah")
-```
-## Motivation
-For fun.
-## Alternatives
-[Click](https://click.palletsprojects.com/en): Greatest and feature-rich CLI framework.
 
-[Typer](https://typer.tiangolo.com/): Very cool Click wrapper based on type hints. Pretty similar to `sicli`, but based on Click and doesn't use `Annotated`.
+### `Annotated[A, B]`
+`Annotated[T, opts]` is the way to pass additional arguments (and override) to `argparse.ArgumentParser.add_argument`. `sicli` unwraps `T`, does whatever would be done with `T`, and merges `opts` to generated kwargs. 
+
+### `list[T]`
+`list[T]` lets you pass multiple arguments. Internally, `sicli` passes `nargs='*'` and `type=T` to `argparse.ArgumentParser.add_argument`. `tuple[...]` is not supported because `argparse` doesn't directly support `nargs` with heterogeneous types. It would require a custom `action`.
+
+### `Literal[A, B, ...]`
+`Literal[A, B, ...]` (with the same type of all choices) lets you restrict values  Internally, `sicli` passes `choices=(A, B, ...)` to `argparse.ArgumentParser.add_argument`.
+
+### `bool`
+- `bool` is being interpreted as flag (`"store_true"`).
+
+### Other types
+Any other primitive type that you would pass to `type` argument in `argparse.ArgumentParser.add_argument` would work. For instance, `int`, `str`, `Path`.
+Note that you can override type annotation and even pass an arbitrary converter function to `type` as you would do in `argparse` using `Annotated` metadata:
+```python
+def example(
+    s: Annotated[str, {"type": ascii}],
+):
+```
+That way your editor won't complain about types.
+
+### Limitations
+Note that arbitrary nesting of types is not supported (Like in `list[Annotated[Literal[1, 2, 3], {}]]`). Only `Annotated` can wrap other generic types..
+
+## Requirements
+No dependencies are needed, only pure Python ≥ `3.10`.
+
+## Installation
+Not available in PyPi for now. Clone the repo and build it yourself.
+```
+git clone git@github.com:immanelg/sicli.git
+```
+And then
+```
+flit build
+flit install
+```
+
+## Motivation
+i needed something simple and convenient. But mainly, it is all for fun.
+
+## Alternatives
+[Click](https://click.palletsprojects.com/en): The greatest CLI toolkit. Use it if you want to have a complex CLI.
+
+[Typer](https://typer.tiangolo.com/): Very cool package that wraps Click, based on type hints. Similar to `sicli`.
 
 [Plac](https://plac.readthedocs.io/en/latest/): Simple and convenient wrapper for `argparse`. Doesn't use type hints for types. Even simpler, than `sicli`: no `nargs`, for example.
