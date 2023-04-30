@@ -65,6 +65,10 @@ class Sicli:
             # `nargs` do not support heterogeneous types
             raise RuntimeError("Tuples are unsupported, use `list` instead")
 
+        elif origin is not None:
+            # Unsupported generic alias
+            raise RuntimeError(f"Unrecognized generic type {origin}")
+
         elif issubclass(type_annotation, Enum):
             choices = tuple(c.value for c in type_annotation)
             kwargs = {"choices": choices, "type": type_annotation} | kwargs
@@ -87,11 +91,20 @@ class Sicli:
         self, type_annotation: Any, kwargs: dict[str, Any]
     ) -> tuple[Any, dict[str, Any]]:
         origin, args = unwrap_generic_alias(type_annotation)
-        if origin is Annotated:
-            # add metadata
-            kwargs |= args[1]
-            return args[0], kwargs
-        return type_annotation, kwargs
+
+        if origin is not Annotated:
+            return type_annotation, kwargs
+
+        for arg in args:
+            if isinstance(arg, dict):
+                # kwargs for add_argument
+                kwargs |= arg
+            elif isinstance(arg, str):
+                # help string
+                kwargs["help"] = arg
+
+        # return actual type
+        return args[0], kwargs
 
     def add_command(self, function: AnyCallable) -> None:
         self._set_main(function)
