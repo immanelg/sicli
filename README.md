@@ -82,19 +82,19 @@ Default values for both types of arguments are mapped, as your intuition would s
 Internally, they are passed to  `default` argument in `argparse.ArgumentParser.add_argument` and `nargs="?"` is passed for non-list types.
 ### Types
 
-### `Annotated[A, B]`
+#### `Annotated[A, B]`
 `Annotated[T, opts]` is the way to pass additional arguments (and override) to `argparse.ArgumentParser.add_argument`. `sicli` unwraps `T`, does whatever would be done with `T`, and merges `opts` to generated kwargs. 
 
-### `list[T]`
+#### `list[T]`
 `list[T]` lets you pass multiple arguments. Internally, `sicli` passes `nargs='*'` and `type=T` to `argparse.ArgumentParser.add_argument`. `tuple[...]` is not supported because `argparse` doesn't directly support `nargs` with heterogeneous types. It would require a custom `action`.
 
-### `Literal[A, B, ...]`
+#### `Literal[A, B, ...]`
 `Literal[A, B, ...]` (with the same type of all choices) lets you restrict values  Internally, `sicli` passes `choices=(A, B, ...)` to `argparse.ArgumentParser.add_argument`.
 
-### `bool`
+#### `bool`
 - `bool` is being interpreted as flag (`"store_true"`).
 
-### Other types
+#### Other types
 Any other primitive type that you would pass to `type` argument in `argparse.ArgumentParser.add_argument` would work. For instance, `int`, `str`, `Path`.
 Note that you can override type annotation and even pass an arbitrary converter function to `type` as you would do in `argparse` using `Annotated` metadata:
 ```python
@@ -104,7 +104,7 @@ def example(
 ```
 That way your editor won't complain about types.
 
-### Limitations
+#### Limitations
 Note that arbitrary nesting of types is not supported (Like in `list[Annotated[Literal[1, 2, 3], {}]]`). Only `Annotated` can wrap other generic types..
 
 ## Requirements
