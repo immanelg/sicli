@@ -89,7 +89,7 @@ Internally, they are passed to  `default` argument in `argparse.ArgumentParser.a
 `list[T]` lets you pass multiple arguments. Internally, `sicli` passes `nargs='*'` and `type=T` to `argparse.ArgumentParser.add_argument`. `tuple[...]` is not supported because `argparse` doesn't directly support `nargs` with heterogeneous types. It would require a custom `action`.
 
 #### `Literal[A, B, ...]`
-`Literal[A, B, ...]` (with the same type of all choices) lets you restrict values  Internally, `sicli` passes `choices=(A, B, ...)` to `argparse.ArgumentParser.add_argument`.
+`Literal[A, B, ...]` lets you restrict values. Internally, `sicli` passes `choices=(A, B, ...)` to `argparse.ArgumentParser.add_argument`.
 
 #### `bool`
 - `bool` is being interpreted as flag (`"store_true"`).
@@ -122,7 +122,7 @@ flit install
 ```
 
 ## Motivation
-i needed something simple and convenient. But mainly, it is all for fun.
+I needed something simple and convenient. But mainly, it is all for fun.
 
 ## Alternatives
 [Click](https://click.palletsprojects.com/en): The greatest CLI toolkit. Use it if you want to have a complex CLI.
