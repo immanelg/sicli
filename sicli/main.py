@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from collections.abc import Callable
 from typing import Any, Literal, get_args, Annotated, Union
+from enum import Enum
 import inspect
 from .utils import (
     isgeneric,
@@ -66,6 +67,10 @@ class Sicli:
         elif lenient_issubclass(origin, tuple):
             # `nargs` do not support heterogeneous types
             raise RuntimeError("Tuples are unsupported, use `list` instead")
+
+        elif issubclass(type_annotation, Enum):
+            choices = tuple(c.value for c in type_annotation)
+            kwargs = {"choices": choices} | kwargs
 
         elif issubclass(type_annotation, bool):
             # case when boolean flag

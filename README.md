@@ -91,6 +91,9 @@ Internally, they are passed to  `default` argument in `argparse.ArgumentParser.a
 #### `Literal[A, B, ...]`
 `Literal[A, B, ...]` lets you restrict values. Internally, `sicli` passes `choices=(A, B, ...)` to `argparse.ArgumentParser.add_argument`.
 
+#### `Enum`
+Works in the same way as `Literal`.
+
 #### `bool`
 - `bool` is being interpreted as flag (`"store_true"`).
 
