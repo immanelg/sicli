@@ -17,8 +17,8 @@ class Sicli:
     _function: AnyCallable | None
     _parser: ArgumentParser
 
-    def __init__(self, **parser_args: Any) -> None:
-        self._parser = ArgumentParser(**(parser_args or {}))
+    def __init__(self, **argument_parser_kwargs: Any) -> None:
+        self._parser = ArgumentParser(**(argument_parser_kwargs or {}))
         self._function = None
 
     def _add_function(self, function: AnyCallable, parser: ArgumentParser) -> None:
@@ -26,9 +26,6 @@ class Sicli:
             kwargs = self._parse_parameter(param)
 
             names = [snake_to_lower_kebab_case(param.name)]
-
-            # if param.kind == param.POSITIONAL_OR_KEYWORD:
-            #     parser.add_argument(*names, **kwargs)
 
             # If argument is keyword-only, it is an option
             if param.kind == param.KEYWORD_ONLY:
@@ -112,12 +109,7 @@ class Sicli:
         self._function(**kwargs)
 
 
-def cli(**kwargs: Any) -> Callable[[AnyCallable], Sicli]:
-    def wrapper(function: AnyCallable) -> Sicli:
-        sicli_object = Sicli(**kwargs)
-        sicli_object.add_command(function)
-        return sicli_object
-
-    return wrapper
-
-
+def run(function: AnyCallable, args: list[str] | None = None,  **argument_parser_kwargs) -> None:
+    cli = Sicli(**argument_parser_kwargs)
+    cli.add_command(function)
+    cli(args)
