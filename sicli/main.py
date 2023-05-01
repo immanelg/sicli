@@ -46,7 +46,7 @@ class Sicli:
 
         if origin is Literal:
             # case when 'choices'
-            kwargs = {"choices": get_args(type_annotation)} | kwargs
+            kwargs = {"choices": args, "type": type(args[0])} | kwargs
 
         elif origin is Union:
             # unions are obviously not supported by argparse
@@ -54,6 +54,7 @@ class Sicli:
 
         # allow only explicit type parameters on generic lists/tuples, so use origin
         elif lenient_issubclass(origin, list):
+            # TODO handle Sequence, Iterable, ...
             kwargs = {"nargs": "*", "type": args[0]} | kwargs
             if isgeneric(args[0]):
                 raise ValueError("Nested generics for `list` are unsupported")
@@ -67,7 +68,7 @@ class Sicli:
             raise ValueError(f"Unrecognized generic type {origin}")
 
         elif issubclass(type_annotation, Enum):
-            choices = tuple(c.value for c in type_annotation)
+            choices = tuple(c for c in type_annotation)
             kwargs = {"choices": choices, "type": type_annotation} | kwargs
 
         elif issubclass(type_annotation, bool):
@@ -85,7 +86,7 @@ class Sicli:
 
         if param.default != inspect._empty:
             kwargs = {"default": param.default} | kwargs
-        elif param.kind == param.KEYWORD_ONLY:
+        elif param.kind == param.KEYWORD_ONLY and not kwargs.get("action") == "store_true":
             kwargs = {"required": True} | kwargs
 
         if kwargs.get("default") is not None and kwargs.get("nargs") != "*":
@@ -122,14 +123,14 @@ class Sicli:
         assert self._function is None, "Can only have one function per object"
         self._function = function
 
-    def __call__(self, args: list[str] | None = None) -> None:
+    def __call__(self, args: list[str] | None = None) -> Any:
         parsed_args = self._parser.parse_args(args)
         kwargs = vars(parsed_args)
         assert self._function is not None, "Function to call is not provided"
-        self._function(**kwargs)
+        return self._function(**kwargs)
 
 
 def run(function: AnyCallable, args: list[str] | None = None,  **argument_parser_kwargs) -> None:
     cli = Sicli(**argument_parser_kwargs)
     cli.add_command(function)
-    cli(args)
+    return cli(args)

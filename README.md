@@ -95,10 +95,18 @@ Internally, they are passed to  `default` argument in `argparse.ArgumentParser.a
 `list[T]` lets you pass multiple arguments. Internally, `sicli` passes `nargs='*'` and `type=T` to `argparse.ArgumentParser.add_argument`. `tuple[...]` is not supported because `argparse` doesn't directly support `nargs` with heterogeneous types. It would require a custom `action`.
 
 #### `Literal[A, B, ...]`
-`Literal[A, B, ...]` lets you restrict values. Internally, `sicli` passes `choices=(A, B, ...)` to `argparse.ArgumentParser.add_argument`.
+`Literal[A, B, ...]` (of the same type) lets you restrict values. Internally, `sicli` passes `choices=(A, B, ...)` and `type=type(A)`to `argparse.ArgumentParser.add_argument`.
 
 #### `Enum`
-Works in the same way as `Literal`, and passes `Enum` class to `type`.
+Works in the same way as `Literal`, and passes `Enum` class to `type`. To use it, you need to create `__str__` method like that:
+```python
+class Color(Enum):
+    red = "r"
+    black = "b"
+
+    def __str__(self) -> str:
+        return self.value
+```
 
 #### `bool`
 `bool` is being interpreted as flag (`"store_true"`).

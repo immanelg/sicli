@@ -1,0 +1,79 @@
+from typing import Literal
+from sicli import run
+import pytest
+
+
+def test_basic():
+    def f(x: str):
+        return x
+
+    assert run(f, ["a"]) == "a"
+
+    with pytest.raises(SystemExit):
+        run(f, ["1", "2", "3"])
+
+
+def test_argument_with_defaults():
+    def f(x: int, y: int = 1):
+        return x, y
+
+    assert run(f, ["100"]) == (100, 1)
+    assert run(f, ["100", "200"]) == (100, 200)
+
+
+def test_option_with_defaults():
+    def f(*, x: int = 1, y: int = 2):
+        return x, y
+
+    assert run(f, ["--x", "100"]) == (100, 2)
+    assert run(f, ["--x", "100", "--y", "200"]) == (100, 200)
+
+def test_flag():
+
+    def f(x: int, *, y: bool):
+        return x, y
+    
+    assert run(f, ["12", "--y"]) == (12, True)
+    assert run(f, ["12"]) == (12, False)
+
+
+def test_list():
+    def f(xs: list[str], *, ys: list[int]):
+        return xs, ys
+
+    assert run(f, ["a", "b", "--ys", "100", "200"]) == (["a", "b"], [100, 200])
+
+
+def test_literal():
+    def f(x: Literal[1, 2], *, y: Literal[3, 4]):
+        return x, y
+
+    assert run(f, ["1", "--y", "3"]) == (1, 3)
+
+    with pytest.raises(SystemExit):
+        run(f, ["10", "40"])
+
+def test_enum():
+    from enum import Enum
+
+    class Color(Enum):
+        red = "r"
+        black = "b"
+
+        def __str__(self) -> str:
+            return self.value
+
+    def f(c: Color = Color.red):
+        return c
+
+    assert run(f, ["r"]) == Color.red
+
+    with pytest.raises(SystemExit):
+        run(f, ["white"])
+
+def test_bad_type():
+    def f(*, x: int = 1):
+        pass
+
+    with pytest.raises(SystemExit):
+        assert run(f, ["nan"])
