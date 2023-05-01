@@ -84,7 +84,7 @@ You simply call `sicli.run` on your function and it will parse its signature, pa
 
 ### Default values
 Default values for both types of arguments are mapped, as your intuition would suggest, to default arguments in CLI.
-Internally, they are passed to  `default` argument in `argparse.ArgumentParser.add_argument` and `nargs="?"` is passed for non-list types.
+Internally, they are passed to  `default` argument in `argparse.ArgumentParser.add_argument` and `nargs="?"` is passed for non-list types. Every argument that doesn't have a default value and is not a flag, is `required`.
 
 ### Types
 
