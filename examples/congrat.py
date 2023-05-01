@@ -1,18 +1,21 @@
-from sicli import cli
+import sicli
 
-from typing import Literal, Annotated
+from typing import Literal
+from typing import Annotated as Ann
 from pathlib import Path
 
 
-@cli(epilog="And that's how you make people happy")
 def congratulate(
+    # positional arguments go here
     reason: str,
-    language: Literal["en", "fr"] = "en",
-    numbers: Annotated[list[float], {"help": "Throw me some numbers"}] = [],
+    gift: Ann[str, "What to give them"], # help message
+    language: Literal["en", "fr"] = "en", # choice of values 
+
+    # options go here
     *,
-    output: Path,
-    loud: Annotated[bool, {"help": "SCREAM"}],
-    names: list[str] = [],
+    output: Path = Path("./out.txt"),
+    loud: Ann[bool, "IF ENABLED THEN SCREAM"], # this is a flag
+    names: list[str] = ["Maria"],
 ) -> None:
     """
     This program congratulates everyone if you haven't guessed.
@@ -26,9 +29,9 @@ def congratulate(
             print(f"happy {reason}, {name}!!1!".upper())
         else:
             print(f"happy {reason}, {name}.")
+        print(f"Here's your {gift}")
     print("Writing to file", output.resolve())
-    print(f"Here's the sum of your numbers: {sum(numbers)}")
 
 
 if __name__ == "__main__":
-    congratulate()
+    sicli.run(congratulate)
