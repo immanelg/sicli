@@ -74,6 +74,10 @@ class Sicli:
             # case when boolean flag
             kwargs = {"action": "store_true"} | kwargs
 
+        elif type_annotation is inspect._empty:
+            # no type is provided
+            pass
+
         else:
             # case when regular param
             kwargs = {"type": type_annotation, "action": "store"} | kwargs
