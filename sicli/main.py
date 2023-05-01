@@ -23,100 +23,105 @@ class Sicli:
 
     def _add_function(self, function: AnyCallable, parser: ArgumentParser) -> None:
         for param in get_signature(function).parameters.values():
-            kwargs = self._parse_parameter(param)
 
-            names = [snake_to_lower_kebab_case(param.name)]
+            is_positional = param.kind == param.POSITIONAL_OR_KEYWORD
+            is_option = param.kind == param.KEYWORD_ONLY
 
-            # If argument is keyword-only, it is an option
-            if param.kind == param.KEYWORD_ONLY:
-                names = ["--" + name for name in names]
+            if not is_option and not is_positional:
+                # just not touch it
+                continue
 
-            parser.add_argument(*names, **kwargs)
+            type_annotation = param.annotation
+
+            type_annotation, varargs, kwargs = self._unwrap_annotated(type_annotation) 
+
+            origin, typeargs = unwrap_generic_alias(type_annotation)
+
+            if origin is Literal:
+                # case when 'choices'
+                kwargs = {"choices": typeargs, "type": type(typeargs[0])} | kwargs
+
+            elif origin is Union:
+                # TODO
+                raise ValueError("Union types are currently not supported")
+
+            # allow only explicit type parameters on generic lists/tuples, so use origin
+            elif lenient_issubclass(origin, list):
+                # TODO handle Sequence, Iterable, ...
+                kwargs = {"nargs": "*", "type": typeargs[0]} | kwargs
+                if isgeneric(typeargs[0]):
+                    raise ValueError("Nested generics for `list` are unsupported")
+
+            elif lenient_issubclass(origin, tuple):
+                # `nargs` do not support heterogeneous types
+                raise ValueError("Tuples are unsupported, use `list` instead")
+
+            elif origin is not None:
+                # Unsupported generic alias
+                raise ValueError(f"Unrecognized generic type {origin}")
+
+            elif issubclass(type_annotation, Enum):
+                choices = tuple(c for c in type_annotation)
+                kwargs = {"choices": choices, "type": type_annotation} | kwargs
+
+            elif issubclass(type_annotation, bool):
+                # case when boolean flag
+                kwargs = {"action": "store_true"} | kwargs
+
+            elif type_annotation is param.empty:
+                # no type is provided
+                pass
+
+            else:
+                # case when regular param
+                kwargs = {"type": type_annotation, "action": "store"} | kwargs
+
+            if param.default != param.empty:
+                kwargs = {"default": param.default} | kwargs
+            elif is_option and not kwargs.get("action") == "store_true":
+                # if we don't have a default value and it is not a flag, require
+                # the argument instead of passing None
+                # we do it only for options because argparse is raising
+                # `'required' is an invalid argument for positionals`
+                kwargs = {"required": True} | kwargs
+
+            if kwargs.get("default") is not None and kwargs.get("nargs") != "*":
+                # Always respect the existence of default value
+                kwargs = {"nargs": "?"} | kwargs
+
+            if not varargs:
+                if is_positional:
+                    varargs = [snake_to_lower_kebab_case(param.name)]
+                else:
+                    varargs = ["--" + snake_to_lower_kebab_case(param.name)]
+
+            parser.add_argument(*varargs, **kwargs)
 
             parser.description = parser.description or inspect.getdoc(function)
 
-    def _parse_parameter(self, param: inspect.Parameter) -> dict[str, Any]:
-        kwargs = {}
-
-        type_annotation = param.annotation
-
-        type_annotation, kwargs = self._unwrap_annotated(type_annotation, kwargs)
-
-        origin, args = unwrap_generic_alias(type_annotation)
-
-        if origin is Literal:
-            # case when 'choices'
-            kwargs = {"choices": args, "type": type(args[0])} | kwargs
-
-        elif origin is Union:
-            # unions are obviously not supported by argparse
-            raise ValueError("Union types are unsupported")
-
-        # allow only explicit type parameters on generic lists/tuples, so use origin
-        elif lenient_issubclass(origin, list):
-            # TODO handle Sequence, Iterable, ...
-            kwargs = {"nargs": "*", "type": args[0]} | kwargs
-            if isgeneric(args[0]):
-                raise ValueError("Nested generics for `list` are unsupported")
-
-        elif lenient_issubclass(origin, tuple):
-            # `nargs` do not support heterogeneous types
-            raise ValueError("Tuples are unsupported, use `list` instead")
-
-        elif origin is not None:
-            # Unsupported generic alias
-            raise ValueError(f"Unrecognized generic type {origin}")
-
-        elif issubclass(type_annotation, Enum):
-            choices = tuple(c for c in type_annotation)
-            kwargs = {"choices": choices, "type": type_annotation} | kwargs
-
-        elif issubclass(type_annotation, bool):
-            # case when boolean flag
-            kwargs = {"action": "store_true"} | kwargs
-
-        elif type_annotation is inspect._empty:
-            # no type is provided
-            pass
-
-        else:
-            # case when regular param
-            kwargs = {"type": type_annotation, "action": "store"} | kwargs
-
-
-        if param.default != inspect._empty:
-            kwargs = {"default": param.default} | kwargs
-        elif param.kind == param.KEYWORD_ONLY and not kwargs.get("action") == "store_true":
-            # if we don't have a default value and it is not a flag, require
-            # the argument instead of passing None
-            # we do it only for options because argparse is raising
-            # `'required' is an invalid argument for positionals`
-            kwargs = {"required": True} | kwargs
-
-        if kwargs.get("default") is not None and kwargs.get("nargs") != "*":
-            # Always respect the existence of default value
-            kwargs = {"nargs": "?"} | kwargs
-
-        return kwargs
-
     def _unwrap_annotated(
-        self, type_annotation: Any, kwargs: dict[str, Any]
-    ) -> tuple[Any, dict[str, Any]]:
+        self, type_annotation: Any,
+    ) -> tuple[Any, list[Any], dict[str, Any]]:
+        """Unwrap type, help, args and kwargs from `Annotated`."""
+
         origin, args = unwrap_generic_alias(type_annotation)
 
         if origin is not Annotated:
-            return type_annotation, kwargs
+            return type_annotation, [], {}
+
+        type_ = args[0]
+        varargs = []
+        kwargs = {}
 
         for arg in args:
-            if isinstance(arg, dict):
-                # kwargs for add_argument
-                kwargs |= arg
-            elif isinstance(arg, str):
-                # help string
+            if isinstance(arg, str):
                 kwargs["help"] = arg
+            elif isinstance(arg, list):
+                varargs.extend(arg)
+            elif isinstance(arg, dict):
+                kwargs |= arg
 
-        # return actual type
-        return args[0], kwargs
+        return type_, varargs, kwargs
 
     def add_command(self, function: AnyCallable) -> None:
         self._set_main(function)

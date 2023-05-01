@@ -88,8 +88,20 @@ Internally, they are passed to  `default` argument in `argparse.ArgumentParser.a
 
 ### Types
 
-#### `Annotated[T, help, opts]`
-`Annotated` in Python is the way to store metadata inside a valid type. So, `sicli` interprets first argument as the type and does whatever would be done with it, interprets `str` argument as help for this argument, and `dict` as the kwargs for `argparse.ArgumentParser.add_argument`.
+#### `Annotated[T, help, args, kwargs]`
+`Annotated` in Python is the way to store metadata inside a valid type.
+So, `sicli` uses first argument as the type and does whatever would be done with it, uses `str` argument as help for this argument, uses `list` argument as `*args` for `argparse.ArgumentParser.add_argument` (names of arguments in CLI), `dict` as the `*kwargs `for `argparse.ArgumentParser.add_argument`. Note that you will rarely need these `dict` and `list`.
+Example:
+```python
+from typing import Annotated as A
+
+def ls(
+    path: Path,
+    *,
+    size: A[bool, "show size", ["--size", "-s"], {"metavar": "filesize"}],
+) -> None:
+    ...
+```
 
 #### `list[T]`
 `list[T]` lets you pass multiple arguments. Internally, `sicli` passes `nargs='*'` and `type=T` to `argparse.ArgumentParser.add_argument`. `tuple[...]` is not supported because `argparse` doesn't directly support `nargs` with heterogeneous types. It would require a custom `action`.
