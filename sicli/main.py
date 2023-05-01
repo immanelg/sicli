@@ -53,21 +53,21 @@ class Sicli:
 
         elif origin is Union:
             # unions are obviously not supported by argparse
-            raise RuntimeError("Union types are unsupported")
+            raise ValueError("Union types are unsupported")
 
         # allow only explicit type parameters on generic lists/tuples, so use origin
         elif lenient_issubclass(origin, list):
             kwargs = {"nargs": "*", "type": args[0]} | kwargs
             if isgeneric(args[0]):
-                raise RuntimeError("Nested generics for `list` are unsupported")
+                raise ValueError("Nested generics for `list` are unsupported")
 
         elif lenient_issubclass(origin, tuple):
             # `nargs` do not support heterogeneous types
-            raise RuntimeError("Tuples are unsupported, use `list` instead")
+            raise ValueError("Tuples are unsupported, use `list` instead")
 
         elif origin is not None:
             # Unsupported generic alias
-            raise RuntimeError(f"Unrecognized generic type {origin}")
+            raise ValueError(f"Unrecognized generic type {origin}")
 
         elif issubclass(type_annotation, Enum):
             choices = tuple(c.value for c in type_annotation)
