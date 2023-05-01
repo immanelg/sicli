@@ -21,8 +21,8 @@ def congratulate(
     # options go here
     *,
     output: Path = Path("./out.txt"),
-    loud: Ann[bool, "IF ENABLED THEN SCREAM"], # this is a flag
-    names: list[str] = ["Maria"],
+    loud: Ann[bool, "IF ENABLED THEN SCREAM"], # flag
+    names: list[str] = ["Maria"], # multiple arguments
 ) -> None:
     """
     This program congratulates everyone if you haven't guessed.
@@ -89,7 +89,7 @@ Internally, they are passed to  `default` argument in `argparse.ArgumentParser.a
 ### Types
 
 #### `Annotated[T, help, opts]`
-`Annotated` in Python is the way to store metadata inside a valid type. So, `sicli` interprets first argument as the type and doe whatever would be done with it, interprets `str` argument as help for this argument, and `dict` as the kwargs for `argparse.ArgumentParser.add_argument`.
+`Annotated` in Python is the way to store metadata inside a valid type. So, `sicli` interprets first argument as the type and does whatever would be done with it, interprets `str` argument as help for this argument, and `dict` as the kwargs for `argparse.ArgumentParser.add_argument`.
 
 #### `list[T]`
 `list[T]` lets you pass multiple arguments. Internally, `sicli` passes `nargs='*'` and `type=T` to `argparse.ArgumentParser.add_argument`. `tuple[...]` is not supported because `argparse` doesn't directly support `nargs` with heterogeneous types. It would require a custom `action`.
@@ -101,7 +101,7 @@ Internally, they are passed to  `default` argument in `argparse.ArgumentParser.a
 Works in the same way as `Literal`, and passes `Enum` class to `type`.
 
 #### `bool`
-- `bool` is being interpreted as flag (`"store_true"`).
+`bool` is being interpreted as flag (`"store_true"`).
 
 #### Other types
 Any other primitive type that you would pass to `type` argument in `argparse.ArgumentParser.add_argument` would work. For instance, `int`, `str`, `Path`.

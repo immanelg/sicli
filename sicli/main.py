@@ -82,14 +82,15 @@ class Sicli:
             # case when regular param
             kwargs = {"type": type_annotation, "action": "store"} | kwargs
 
-        if kwargs.get("default") is not None and kwargs.get("nargs") != "*":
-            # Always respect the existence of default value
-            kwargs = {"nargs": "?"} | kwargs
 
         if param.default != inspect._empty:
             kwargs = {"default": param.default} | kwargs
         elif param.kind == param.KEYWORD_ONLY:
             kwargs = {"required": True} | kwargs
+
+        if kwargs.get("default") is not None and kwargs.get("nargs") != "*":
+            # Always respect the existence of default value
+            kwargs = {"nargs": "?"} | kwargs
 
         return kwargs
 
