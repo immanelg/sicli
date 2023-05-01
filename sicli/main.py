@@ -87,6 +87,10 @@ class Sicli:
         if param.default != inspect._empty:
             kwargs = {"default": param.default} | kwargs
         elif param.kind == param.KEYWORD_ONLY and not kwargs.get("action") == "store_true":
+            # if we don't have a default value and it is not a flag, require
+            # the argument instead of passing None
+            # we do it only for options because argparse is raising
+            # `'required' is an invalid argument for positionals`
             kwargs = {"required": True} | kwargs
 
         if kwargs.get("default") is not None and kwargs.get("nargs") != "*":

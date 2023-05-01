@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Annotated, Literal
 from sicli import run
 import pytest
 
@@ -43,6 +43,13 @@ def test_list():
 
     assert run(f, ["a", "b", "--ys", "100", "200"]) == (["a", "b"], [100, 200])
 
+def test_list_default_values():
+    def f(xs: list[str] = ["a", "b"], *, ys: list[int] = [3, 4]):
+        return xs, ys
+
+    assert run(f, ["--ys", "100", "200"]) == (["a", "b"], [100, 200])
+    assert run(f, ["q", "w"]) == (["q", "w"], [3, 4])
+    assert run(f, ["q", "w", "--ys", "100", "200"]) == (["q", "w"], [100, 200])
 
 def test_literal():
     def f(x: Literal[1, 2], *, y: Literal[3, 4]):
@@ -73,7 +80,13 @@ def test_enum():
 
 def test_bad_type():
     def f(*, x: int = 1):
-        pass
+        return x
 
     with pytest.raises(SystemExit):
-        assert run(f, ["nan"])
+        assert run(f, ["--x", "NaN"])
+
+def test_annotated_wrapped_type():
+    def f(x: Annotated[int, "help for x"], *, y: Annotated[Literal[3, 4], "help for y", {}] = 3):
+        return x, y
+
+    assert run(f, ["1", "--y", "4"]) == (1, 4)
