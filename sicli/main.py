@@ -40,9 +40,6 @@ class Sicli:
 
         type_annotation = param.annotation
 
-        if param.default != inspect._empty:
-            kwargs = {"default": param.default} | kwargs
-
         type_annotation, kwargs = self._unwrap_annotated(type_annotation, kwargs)
 
         origin, args = unwrap_generic_alias(type_annotation)
@@ -84,6 +81,11 @@ class Sicli:
         if kwargs.get("default") is not None and kwargs.get("nargs") != "*":
             # Always respect the existence of default value
             kwargs = {"nargs": "?"} | kwargs
+
+        if param.default != inspect._empty:
+            kwargs = {"default": param.default} | kwargs
+        elif param.kind == param.KEYWORD_ONLY:
+            kwargs = {"required": True} | kwargs
 
         return kwargs
 
