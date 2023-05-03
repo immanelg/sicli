@@ -75,8 +75,22 @@ Writing to file /home/alex/repos/sicli/xm.txt
 
 ## Usage
 
-### Creating endpoint
-You simply call `sicli.run` on your function and it will parse its signature, parse `sys.argv` and call the function with appropriate arguments.
+### Creating entry point
+To create an entry point, use `sicli.run`. If it's called with a list of functions, they will work as subcommands. You can specify CLI arguments as the second argument to the function to parse them instead of `sys.argv[1:]`. Example:
+
+```python
+
+>>> import sicli
+>>> def initdb(*, name: str):
+...     print("dropped")
+... 
+>>> def dropdb(*, name: str):
+...     print("dropped")
+... 
+>>> sicli.run([initdb, dropdb], ["initdb", "--name", "name"])
+dropped
+
+```
 
 ### Arguments vs options
 - Regular arguments are mapped to positional arguments in CLI.
@@ -84,27 +98,36 @@ You simply call `sicli.run` on your function and it will parse its signature, pa
 
 ### Default values
 Default values for both types of arguments are mapped, as your intuition would suggest, to default arguments in CLI.
-Internally, they are passed to  `default` argument in `argparse.ArgumentParser.add_argument` and `nargs="?"` is passed for non-list types. Every argument that doesn't have a default value and is not a flag, is `required`.
+Internally, they are passed to `default` argument in `argparse.ArgumentParser.add_argument` and `nargs="?"` is passed for non-list types. Every argument that doesn't have a default value and is not a flag, is `required`. For flags, default value is always `False` and don't have to be set.
 
 ### Types
 
 #### `Annotated[T, help, args, kwargs]`
 `Annotated` in Python is the way to store metadata inside a valid type.
-So, `sicli` uses first argument as the type and does whatever would be done with it, uses `str` argument as help for this argument, uses `list` argument as `*args` for `argparse.ArgumentParser.add_argument` (names of arguments in CLI), `dict` as the `*kwargs `for `argparse.ArgumentParser.add_argument`. Note that you will rarely need these `dict` and `list`.
+So, `sicli` uses first argument as the type and does whatever would be done with it, uses `str` argument as help for this argument, uses `list` argument as `*args` for `argparse.ArgumentParser.add_argument`, `dict` will be merged to `*kwargs `for `argparse.ArgumentParser.add_argument`. Note that you will rarely need these `dict` and `list`.
 Example:
 ```python
-from typing import Annotated as A
 
-def ls(
-    path: Path,
-    *,
-    size: A[bool, "show size", ["--size", "-s"], {"metavar": "filesize"}],
-) -> None:
-    ...
+>>> import sicli
+>>> from typing import Annotated as Ann
+>>> def divide(
+...     *,
+...     numbers: Ann[
+...         list[int],
+...         "Numbers to divide",
+...         ["-n", "--numbers"],
+...         {"nargs": 2},
+...     ],
+... ):
+...     print(numbers[0] / numbers[1])
+... 
+>>> sicli.run(divide, ["-n", "1", "2"])
+0.5
+
 ```
 
 #### `list[T]`
-`list[T]` lets you pass multiple arguments. Internally, `sicli` passes `nargs='*'` and `type=T` to `argparse.ArgumentParser.add_argument`. `tuple[...]` is not supported because `argparse` doesn't directly support `nargs` with heterogeneous types. It would require a custom `action`.
+`list[T]` lets you pass multiple arguments. Internally, `sicli` passes `nargs='*'` and `type=T` to `argparse.ArgumentParser.add_argument`. `tuple[...]` is not supported because `argparse` doesn't directly support `nargs` with heterogeneous types.
 
 #### `Literal[A, B, ...]`
 `Literal[A, B, ...]` (of the same type) lets you restrict values. Internally, `sicli` passes `choices=(A, B, ...)` and `type=type(A)`to `argparse.ArgumentParser.add_argument`.
@@ -121,7 +144,7 @@ class Color(Enum):
 ```
 
 #### `bool`
-`bool` is being interpreted as flag (`"store_true"`).
+`bool` is interpreted as flag (`"store_true"`). Its default value is always `False` and shouldn't be set.
 
 #### Other types
 Any other primitive type that you would pass to `type` argument in `argparse.ArgumentParser.add_argument` would work. For instance, `int`, `str`, `Path`.
