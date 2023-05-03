@@ -75,6 +75,10 @@ class Sicli:
 
             if param.default != param.empty:
                 kwargs = {"default": param.default} | kwargs
+
+                if kwargs.get("action") == "store_true" and kwargs.get("default") is True:
+                    raise ValueError("Flag default value should be False")
+
             elif is_option and not kwargs.get("action") == "store_true":
                 # if we don't have a default value and it is not a flag, require
                 # the argument instead of passing None
@@ -82,7 +86,11 @@ class Sicli:
                 # `'required' is an invalid argument for positionals`
                 kwargs = {"required": True} | kwargs
 
-            if kwargs.get("default") is not None and kwargs.get("nargs") != "*":
+            if (
+                kwargs.get("default") is not None
+                and kwargs.get("nargs") != "*"
+                and not kwargs.get("action") == "store_true"
+            ):
                 # Always respect the existence of default value
                 kwargs = {"nargs": "?"} | kwargs
 
@@ -129,7 +137,7 @@ class Sicli:
     def _add_multiple_commands(self, functions: Iterable[AnyCallable]) -> None:
         subparsers = self._parser.add_subparsers()
         for function in functions:
-            parser = subparsers.add_parser(function.__name__)
+            parser = subparsers.add_parser(snake_to_lower_kebab_case(function.__name__))
             self._add_function(function, parser)
             parser.set_defaults(__function=function)
 
@@ -147,7 +155,9 @@ class Sicli:
 
 
 def run(
-    functions: AnyCallable | Iterable[AnyCallable], args: list[str] | None = None, **argument_parser_kwargs
+    functions: AnyCallable | Iterable[AnyCallable],
+    args: list[str] | None = None,
+    **argument_parser_kwargs,
 ) -> None:
     cli = Sicli(**argument_parser_kwargs)
     cli.add_commands(functions)
