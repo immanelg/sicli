@@ -94,11 +94,16 @@ class Sicli:
                 # Always respect the existence of default value
                 kwargs = {"nargs": "?"} | kwargs
 
+            param_name = param.name
+
             if not varargs:
                 if is_positional:
-                    varargs = [snake_to_lower_kebab_case(param.name)]
+                    varargs = [snake_to_lower_kebab_case(param_name)]
                 else:
-                    varargs = ["--" + snake_to_lower_kebab_case(param.name)]
+                    varargs = ["--" + snake_to_lower_kebab_case(param_name)]
+
+            if is_option:
+                kwargs = {"dest": param_name} | kwargs
 
             parser.add_argument(*varargs, **kwargs)
 

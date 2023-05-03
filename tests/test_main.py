@@ -100,6 +100,15 @@ def test_annotated_wrapped_type():
 
     assert run(f, ["1", "--y", "4"]) == (1, 4)
 
+def test_annotated_name_override():
+    def f(
+        *, x: Annotated[int, ["-n", "--number"]]
+    ):
+        return x
+    
+    assert run(f, ["-n", "34"]) == 34
+    assert run(f, ["--number", "34"]) == 34
+
 
 def test_subcommands():
     def sub_1(*, x: int):
