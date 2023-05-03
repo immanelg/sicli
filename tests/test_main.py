@@ -28,11 +28,11 @@ def test_option_with_defaults():
     assert run(f, ["--x", "100"]) == (100, 2)
     assert run(f, ["--x", "100", "--y", "200"]) == (100, 200)
 
-def test_flag():
 
+def test_flag():
     def f(x: int, *, y: bool):
         return x, y
-    
+
     assert run(f, ["12", "--y"]) == (12, True)
     assert run(f, ["12"]) == (12, False)
 
@@ -43,6 +43,7 @@ def test_list():
 
     assert run(f, ["a", "b", "--ys", "100", "200"]) == (["a", "b"], [100, 200])
 
+
 def test_list_default_values():
     def f(xs: list[str] = ["a", "b"], *, ys: list[int] = [3, 4]):
         return xs, ys
@@ -50,6 +51,7 @@ def test_list_default_values():
     assert run(f, ["--ys", "100", "200"]) == (["a", "b"], [100, 200])
     assert run(f, ["q", "w"]) == (["q", "w"], [3, 4])
     assert run(f, ["q", "w", "--ys", "100", "200"]) == (["q", "w"], [100, 200])
+
 
 def test_literal():
     def f(x: Literal[1, 2], *, y: Literal[3, 4]):
@@ -59,6 +61,7 @@ def test_literal():
 
     with pytest.raises(SystemExit):
         run(f, ["10", "40"])
+
 
 def test_enum():
     from enum import Enum
@@ -78,6 +81,7 @@ def test_enum():
     with pytest.raises(SystemExit):
         run(f, ["white"])
 
+
 def test_bad_type():
     def f(*, x: int = 1):
         return x
@@ -85,8 +89,24 @@ def test_bad_type():
     with pytest.raises(SystemExit):
         assert run(f, ["--x", "NaN"])
 
+
 def test_annotated_wrapped_type():
-    def f(x: Annotated[int, "help for x"], *, y: Annotated[Literal[3, 4], "help for y", {}] = 3):
+    def f(
+        x: Annotated[int, "help for x"],
+        *,
+        y: Annotated[Literal[3, 4], "help for y", {}] = 3
+    ):
         return x, y
 
     assert run(f, ["1", "--y", "4"]) == (1, 4)
+
+
+def test_subcommands():
+    def sub1(*, x: int):
+        return x
+
+    def sub2(*, y: int):
+        return y
+
+    assert run([sub1, sub2], ["sub1", "--x", "1"]) == 1
+    assert run([sub1, sub2], ["sub2", "--y", "2"]) == 2

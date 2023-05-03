@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
-from collections.abc import Callable
-from typing import Any, Literal, get_args, Annotated, Union
+from collections.abc import Iterable
+from typing import Any, Literal, Annotated, Union
 from enum import Enum
 import inspect
 from .utils import (
@@ -14,16 +14,13 @@ from sicli.types import AnyCallable
 
 
 class Sicli:
-    _function: AnyCallable | None
     _parser: ArgumentParser
 
     def __init__(self, **argument_parser_kwargs: Any) -> None:
         self._parser = ArgumentParser(**(argument_parser_kwargs or {}))
-        self._function = None
 
-    def _add_function(self, function: AnyCallable, parser: ArgumentParser) -> None:
+    def _add_function(self, function: AnyCallable, parser) -> None:
         for param in get_signature(function).parameters.values():
-
             is_positional = param.kind == param.POSITIONAL_OR_KEYWORD
             is_option = param.kind == param.KEYWORD_ONLY
 
@@ -33,7 +30,7 @@ class Sicli:
 
             type_annotation = param.annotation
 
-            type_annotation, varargs, kwargs = self._unwrap_annotated(type_annotation) 
+            type_annotation, varargs, kwargs = self._unwrap_annotated(type_annotation)
 
             origin, typeargs = unwrap_generic_alias(type_annotation)
 
@@ -100,7 +97,8 @@ class Sicli:
             parser.description = parser.description or inspect.getdoc(function)
 
     def _unwrap_annotated(
-        self, type_annotation: Any,
+        self,
+        type_annotation: Any,
     ) -> tuple[Any, list[Any], dict[str, Any]]:
         """Unwrap type, help, args and kwargs from `Annotated`."""
 
@@ -123,23 +121,34 @@ class Sicli:
 
         return type_, varargs, kwargs
 
-    def add_command(self, function: AnyCallable) -> None:
-        self._set_main(function)
+    def _add_single_command(self, function: AnyCallable) -> None:
         parser = self._parser
         self._add_function(function, parser)
+        parser.set_defaults(__function=function)
 
-    def _set_main(self, function: AnyCallable) -> None:
-        assert self._function is None, "Can only have one function per object"
-        self._function = function
+    def _add_multiple_commands(self, functions: Iterable[AnyCallable]) -> None:
+        subparsers = self._parser.add_subparsers()
+        for function in functions:
+            parser = subparsers.add_parser(function.__name__)
+            self._add_function(function, parser)
+            parser.set_defaults(__function=function)
+
+    def add_commands(self, functions: AnyCallable | Iterable[AnyCallable]) -> None:
+        if isinstance(functions, Iterable):
+            self._add_multiple_commands(functions)
+        else:
+            self._add_single_command(functions)
 
     def __call__(self, args: list[str] | None = None) -> Any:
         parsed_args = self._parser.parse_args(args)
         kwargs = vars(parsed_args)
-        assert self._function is not None, "Function to call is not provided"
-        return self._function(**kwargs)
+        function = kwargs.pop("__function")
+        return function(**kwargs)
 
 
-def run(function: AnyCallable, args: list[str] | None = None,  **argument_parser_kwargs) -> None:
+def run(
+    functions: AnyCallable | Iterable[AnyCallable], args: list[str] | None = None, **argument_parser_kwargs
+) -> None:
     cli = Sicli(**argument_parser_kwargs)
-    cli.add_command(function)
+    cli.add_commands(functions)
     return cli(args)
