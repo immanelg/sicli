@@ -88,7 +88,7 @@ To create an entry point, use `sicli.run`. If it's called with a list of functio
 ...     print("dropped")
 ... 
 >>> sicli.run([initdb, dropdb], ["initdb", "--name", "name"])
-dropped
+inited
 
 ```
 
