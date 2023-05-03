@@ -82,7 +82,7 @@ To create an entry point, use `sicli.run`. If it's called with a list of functio
 
 >>> import sicli
 >>> def initdb(*, name: str):
-...     print("dropped")
+...     print("inited")
 ... 
 >>> def dropdb(*, name: str):
 ...     print("dropped")
