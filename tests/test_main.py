@@ -102,11 +102,11 @@ def test_annotated_wrapped_type():
 
 
 def test_subcommands():
-    def sub1(*, x: int):
+    def sub_1(*, x: int):
         return x
 
-    def sub2(*, y: int):
+    def sub_2(*, y: int):
         return y
 
-    assert run([sub1, sub2], ["sub1", "--x", "1"]) == 1
-    assert run([sub1, sub2], ["sub2", "--y", "2"]) == 2
+    assert run([sub_1, sub_2], ["sub-1", "--x", "1"]) == 1
+    assert run([sub_1, sub_2], ["sub-2", "--y", "2"]) == 2
