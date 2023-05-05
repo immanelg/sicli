@@ -3,8 +3,25 @@ requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "sicli"
+name = "sicli-cli"
 authors = [{name = "immanelg"}]
 license = {file = "LICENSE"}
-classifiers = ["License :: OSI Approved :: MIT License"]
+readme = "README.md"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Developers",
+]
+requires-python = ">=3.10"
 dynamic = ["version", "description"]
+
+[tool.flit.module]
+name = "sicli"
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+]
+
+[project.urls]
+Documentation = "https://github.com/immanelg/sicli"
+"Source Code" = "https://github.com/immanelg/sicli"
