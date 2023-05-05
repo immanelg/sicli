@@ -38,16 +38,17 @@ def test_flag():
     assert run(f, ["12"]) == (12, False)
 
 
-def test_list():
-    def f(xs: list[str], *, ys: list[int]):
+@pytest.mark.parametrize("seq", [list, Iterable, List, Sequence])
+def test_list(seq):
+    def f(xs: seq[str], *, ys: seq[int]):
         return xs, ys
 
     assert run(f, ["a", "b", "--ys", "100", "200"]) == (["a", "b"], [100, 200])
+    assert run(f, ["a", "b", "--ys"]) == (["a", "b"], [])
 
 
-@pytest.mark.parametrize("seq", [list, Iterable, List, Sequence])
-def test_list_default_values(seq):
-    def f(xs: seq[str] = ["a", "b"], *, ys: seq[int] = [3, 4]):
+def test_list_default_values():
+    def f(xs: list[str] = ["a", "b"], *, ys: list[int] = [3, 4]):
         return xs, ys
 
     assert run(f, ["--ys", "100", "200"]) == (["a", "b"], [100, 200])
