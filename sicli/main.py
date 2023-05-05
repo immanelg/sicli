@@ -74,7 +74,10 @@ class Sicli:
             if param.default != param.empty:
                 kwargs = {"default": param.default} | kwargs
 
-                if kwargs.get("action") == "store_true" and kwargs.get("default") is True:
+                if (
+                    kwargs.get("action") == "store_true"
+                    and kwargs.get("default") is True
+                ):
                     raise ValueError("Flag default value should be False")
 
             elif is_option and not kwargs.get("action") == "store_true":

@@ -96,18 +96,17 @@ def test_annotated_wrapped_type():
     def f(
         x: Annotated[int, "help for x"],
         *,
-        y: Annotated[Literal[3, 4], "help for y", {}] = 3
+        y: Annotated[Literal[3, 4], "help for y", {}] = 3,
     ):
         return x, y
 
     assert run(f, ["1", "--y", "4"]) == (1, 4)
 
+
 def test_annotated_name_override():
-    def f(
-        *, x: Annotated[int, ["-n", "--number"]]
-    ):
+    def f(*, x: Annotated[int, ["-n", "--number"]]):
         return x
-    
+
     assert run(f, ["-n", "34"]) == 34
     assert run(f, ["--number", "34"]) == 34
 

@@ -8,13 +8,12 @@ from pathlib import Path
 def congratulate(
     # positional arguments go here
     reason: str,
-    gift: Ann[str, "What to give them"], # help message
-    language: Literal["en", "fr"] = "en", # choice of values 
-
+    gift: Ann[str, "What to give them"],  # help message
+    language: Literal["en", "fr"] = "en",  # choice of values
     # options go here
     *,
     output: Path = Path("./out.txt"),
-    loud: Ann[bool, "IF ENABLED THEN SCREAM"], # this is a flag
+    loud: Ann[bool, "IF ENABLED THEN SCREAM"],  # this is a flag
     names: list[str] = ["Maria"],
 ) -> None:
     """
