@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
-from collections.abc import Iterable
-from typing import Any, Literal, Annotated, Union
+from collections.abc import Iterable, Sequence
+from typing import Any, Literal, Annotated, Tuple, Union, List
 from enum import Enum
 import inspect
 from .utils import (
@@ -14,12 +14,15 @@ from sicli.types import AnyCallable
 
 
 class Sicli:
+    """Wrapper for parser that can parse function signatures."""
+
     _parser: ArgumentParser
 
     def __init__(self, **argument_parser_kwargs: Any) -> None:
         self._parser = ArgumentParser(**(argument_parser_kwargs or {}))
 
     def _add_function(self, function: AnyCallable, parser) -> None:
+        """Parses function signature and adding arguments to parser."""
         for param in get_signature(function).parameters.values():
             is_positional = param.kind == param.POSITIONAL_OR_KEYWORD
             is_option = param.kind == param.KEYWORD_ONLY
@@ -35,26 +38,23 @@ class Sicli:
             origin, typeargs = unwrap_generic_alias(type_annotation)
 
             if origin is Literal:
-                # case when 'choices'
                 kwargs = {"choices": typeargs, "type": type(typeargs[0])} | kwargs
 
             elif origin is Union:
                 # TODO
                 raise ValueError("Union types are currently not supported")
 
-            # allow only explicit type parameters on generic lists/tuples, so use origin
-            elif lenient_issubclass(origin, list):
-                # TODO handle Sequence, Iterable, ...
+            elif lenient_issubclass(origin, (tuple, Tuple)):
+                # `nargs` do not support heterogeneous types
+                # we can manually implement that but i'm lazy
+                raise ValueError("Tuples are currently unsupported, use `list` instead")
+
+            elif lenient_issubclass(origin, (list, List, Sequence, Iterable)):
                 kwargs = {"nargs": "*", "type": typeargs[0]} | kwargs
                 if isgeneric(typeargs[0]):
-                    raise ValueError("Nested generics for `list` are unsupported")
-
-            elif lenient_issubclass(origin, tuple):
-                # `nargs` do not support heterogeneous types
-                raise ValueError("Tuples are unsupported, use `list` instead")
+                    raise ValueError("Complex generic types are currently unsupported")
 
             elif origin is not None:
-                # Unsupported generic alias
                 raise ValueError(f"Unrecognized generic type {origin}")
 
             elif issubclass(type_annotation, Enum):
@@ -62,11 +62,9 @@ class Sicli:
                 kwargs = {"choices": choices, "type": type_annotation} | kwargs
 
             elif issubclass(type_annotation, bool):
-                # case when boolean flag
                 kwargs = {"action": "store_true"} | kwargs
 
             elif type_annotation is param.empty:
-                # no type is provided
                 pass
 
             else:
@@ -92,6 +90,7 @@ class Sicli:
                 and not kwargs.get("action") == "store_true"
             ):
                 # Always respect the existence of default value
+                # (except when flag and when multiple arguments)
                 kwargs = {"nargs": "?"} | kwargs
 
             param_name = param.name

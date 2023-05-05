@@ -139,10 +139,10 @@ Example:
 
 ```
 
-#### `list[T]`
+#### `list[T], typing.List[T], typing.Sequence[T], typing.Iterable[T]`
 As you saw, `list[T]` lets you pass multiple arguments. `tuple[...]` (for heterogeneous types) is not currently not supported.
 
-#### `typing.Literal[A, B, ...]`
+#### `typing.Literal`
 `Literal[A, B, ...]` (of the same type) lets you restrict values.
 
 #### `enum.Enum`

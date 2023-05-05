@@ -1,4 +1,5 @@
-from typing import Annotated, Literal
+from collections.abc import Iterable, Sequence
+from typing import Annotated, List, Literal
 from sicli import run
 import pytest
 
@@ -44,8 +45,9 @@ def test_list():
     assert run(f, ["a", "b", "--ys", "100", "200"]) == (["a", "b"], [100, 200])
 
 
-def test_list_default_values():
-    def f(xs: list[str] = ["a", "b"], *, ys: list[int] = [3, 4]):
+@pytest.mark.parametrize("seq", [list, Iterable, List, Sequence])
+def test_list_default_values(seq):
+    def f(xs: seq[str] = ["a", "b"], *, ys: seq[int] = [3, 4]):
         return xs, ys
 
     assert run(f, ["--ys", "100", "200"]) == (["a", "b"], [100, 200])
