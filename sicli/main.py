@@ -144,7 +144,10 @@ class Sicli:
     def _add_multiple_commands(self, functions: Iterable[AnyCallable]) -> None:
         subparsers = self._parser.add_subparsers()
         for function in functions:
-            parser = subparsers.add_parser(snake_to_lower_kebab_case(function.__name__))
+            parser = subparsers.add_parser(
+                snake_to_lower_kebab_case(function.__name__),
+                help=inspect.getdoc(function),
+            )
             self._add_function(function, parser)
             parser.set_defaults(__function=function)
 
