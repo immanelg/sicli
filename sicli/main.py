@@ -1,3 +1,4 @@
+import sys
 from argparse import ArgumentParser
 from collections.abc import Iterable, Sequence
 from typing import Any, Literal, Annotated, Tuple, Union, List
@@ -160,7 +161,10 @@ class Sicli:
     def __call__(self, args: list[str] | None = None) -> Any:
         parsed_args = self._parser.parse_args(args)
         kwargs = vars(parsed_args)
-        function = kwargs.pop("__function")
+        function: AnyCallable | None = kwargs.pop("__function", None)
+        if function is None:
+            self._parser.print_help()
+            sys.exit()
         return function(**kwargs)
 
 

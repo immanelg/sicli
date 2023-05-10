@@ -121,3 +121,6 @@ def test_subcommands():
 
     assert run([sub_1, sub_2], ["sub-1", "--x", "1"]) == 1
     assert run([sub_1, sub_2], ["sub-2", "--y", "2"]) == 2
+
+    with pytest.raises(SystemExit):
+        run([sub_1, sub_2], [])
