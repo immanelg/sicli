@@ -146,7 +146,7 @@ class Sicli:
         for function in functions:
             parser = subparsers.add_parser(
                 snake_to_lower_kebab_case(function.__name__),
-                help=inspect.getdoc(function),
+                help=inspect.getdoc(function) or None,
             )
             self._add_function(function, parser)
             parser.set_defaults(__function=function)
