@@ -135,7 +135,8 @@ class Sicli:
             elif isinstance(arg, list):
                 varargs.extend(arg)
             elif isinstance(arg, Arg):
-                kwargs |= asdict(arg)
+                override_kwargs = {k: v for (k, v) in asdict(arg).items() if v is not None}
+                kwargs |= override_kwargs
             else:
                 raise SicliException(
                     f"`Annotated` arguments after the first one must be values of"
