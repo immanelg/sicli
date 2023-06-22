@@ -1,10 +1,10 @@
 import sys
 from argparse import ArgumentParser
 from collections.abc import Iterable, Sequence
-from typing import Any, Literal, Annotated, Tuple, Union, List, TypeVar
+from typing import Any, Literal, Annotated, Tuple, Union, List
 from enum import Enum
 import inspect
-from .utils import (
+from sicli.utils import (
     isgeneric,
     unwrap_generic_alias,
     get_signature,
@@ -12,6 +12,7 @@ from .utils import (
     lenient_issubclass,
 )
 from sicli.types import AnyCallable
+from sicli.exceptions import SicliException
 
 
 class Sicli:
@@ -22,15 +23,14 @@ class Sicli:
     def __init__(self, **argument_parser_kwargs: Any) -> None:
         self._parser = ArgumentParser(**(argument_parser_kwargs or {}))
 
-    def _feed_function_to_parser(self, function: AnyCallable, parser) -> None:
+    def _consume_function(self, function: AnyCallable, parser) -> None:
         """Parses function signature and adding arguments to parser."""
         for param in get_signature(function).parameters.values():
             is_positional = param.kind == param.POSITIONAL_OR_KEYWORD
             is_option = param.kind == param.KEYWORD_ONLY
 
             if not is_option and not is_positional:
-                # just not touch it
-                continue
+                raise SicliException("Function arguments can only be regular (for positional CLI args) or keyword-only (for CLI options)")
 
             type_annotation = param.annotation
 
@@ -42,21 +42,20 @@ class Sicli:
                 kwargs = {"choices": typeargs, "type": type(typeargs[0])} | kwargs
 
             elif origin is Union:
-                # TODO
-                raise ValueError("Union types are currently not supported")
+                raise SicliException("Union types are currently not supported")
 
             elif lenient_issubclass(origin, (tuple, Tuple)):
                 # `nargs` do not support heterogeneous types
-                # we can manually implement that but i'm lazy
-                raise ValueError("Tuples are currently unsupported, use `list` instead")
+                # we can manually implement that but it is out of scope to make custom validation
+                raise SicliException("Tuples are currently unsupported, use `list` or similar homogeneous collections instead")
 
             elif lenient_issubclass(origin, (list, List, Sequence, Iterable)):
                 kwargs = {"nargs": "*", "type": typeargs[0]} | kwargs
                 if isgeneric(typeargs[0]):
-                    raise ValueError("Complex generic types are currently unsupported")
+                    raise SicliException("Nested generic types are currently unsupported")
 
             elif origin is not None:
-                raise ValueError(f"Unrecognized generic type {origin}")
+                raise SicliException(f"Unsupported generic type {origin}")
 
             elif issubclass(type_annotation, Enum):
                 choices = tuple(c for c in type_annotation)
@@ -66,7 +65,7 @@ class Sicli:
                 kwargs = {"action": "store_true"} | kwargs
 
             elif type_annotation is param.empty:
-                pass
+                raise SicliException("All parameters should have type annotations")
 
             else:
                 # case when regular param
@@ -79,7 +78,7 @@ class Sicli:
                     kwargs.get("action") == "store_true"
                     and kwargs.get("default") is True
                 ):
-                    raise ValueError("Flag default value should be False")
+                    raise SicliException("Flag default value should be False")
 
             elif is_option and not kwargs.get("action") == "store_true":
                 # if we don't have a default value and it is not a flag, require
@@ -139,7 +138,7 @@ class Sicli:
 
     def _add_single_command(self, function: AnyCallable) -> None:
         parser = self._parser
-        self._feed_function_to_parser(function, parser)
+        self._consume_function(function, parser)
         parser.set_defaults(__function=function)
 
     def _add_multiple_commands(self, functions: Iterable[AnyCallable]) -> None:
@@ -149,7 +148,7 @@ class Sicli:
                 snake_to_lower_kebab_case(function.__name__),
                 help=inspect.getdoc(function) or None,
             )
-            self._feed_function_to_parser(function, parser)
+            self._consume_function(function, parser)
             parser.set_defaults(__function=function)
 
     def add_commands(self, functions: AnyCallable | Iterable[AnyCallable]) -> None:
