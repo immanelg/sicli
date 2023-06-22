@@ -2,6 +2,7 @@ from collections.abc import Iterable, Sequence
 from typing import Annotated, List, Literal
 from sicli import run
 import pytest
+from sicli.argument import Arg
 
 
 def test_basic():
@@ -97,7 +98,7 @@ def test_annotated_wrapped_type():
     def f(
         x: Annotated[int, "help for x"],
         *,
-        y: Annotated[Literal[3, 4], "help for y", {}] = 3,
+        y: Annotated[Literal[3, 4], "help for y"] = 3,
     ):
         return x, y
 
@@ -111,6 +112,14 @@ def test_annotated_name_override():
     assert run(f, ["-n", "34"]) == 34
     assert run(f, ["--number", "34"]) == 34
 
+def test_annotated_kwrags_override():
+    def f(*, x: Annotated[list[int], Arg(help="help", type=lambda _: 1, nargs=2)]):
+        return x
+
+    assert run(f, ["--x", "4", "2"]) == [1, 1]
+
+    with pytest.raises(SystemExit):
+        run(f, ["--x", "1"])
 
 def test_subcommands():
     def sub_1(*, x: int):

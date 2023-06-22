@@ -110,13 +110,13 @@ Default values for both types of arguments are mapped, as your intuition would s
 
 ### Types
 
-#### `typing.Annotated[T, help, args, kwargs]`
+#### `typing.Annotated[T, ...]`
 `Annotated` in Python is the way to store metadata inside a valid type.
-So, `sicli` uses
-- first argument as the type and does whatever would be done with it
+So, `sicli` the following metadata
+- first argument as the type and does whatever would be done with it without `Annotated` wrapper.
 - argument of type `str` as help for this argument. 
 - argument of type `list` as names for argument. 
-- argument of type `dict` to merge it with `*kwargs` for `argparse.ArgumentParser.add_argument` (see `argparse` docs).
+- argument of `sici.Arg` dataclass will be merged with `*kwargs` for `argparse.ArgumentParser.add_argument` (see `argparse` docs).
 
 Example:
 ```python
@@ -129,7 +129,7 @@ Example:
 ...         list[int],
 ...         "Numbers to divide",
 ...         ["+n", "+numbers"],
-...         {"nargs": 2},
+...         sicli.Arg(nargs=2),
 ...     ],
 ... ):
 ...     print(numbers[0] / numbers[1])
@@ -163,16 +163,16 @@ class Color(Enum):
 Any other primitive type that you would pass to `type` argument in `argparse.ArgumentParser.add_argument` would work. For instance, `int`, `str`, `Path`.
 
 #### Overriding types
-You can use `dict` in `Annotated` to override type for `argparse.ArgumentParser.add_argument`:
+You can override type for `argparse.ArgumentParser.add_argument`:
 ```python
 def example(
-    s: Annotated[str, {"type": ascii}],
+    s: Annotated[str, sicli.Arg(type=ascii)],
 ):
 ```
 You could've used `ascii` directly as type annotation here if you don't care that your type checker will complain.
 
 #### Limitations
-Note that arbitrary nesting of types is not supported (Like in `list[Annotated[Literal[1, 2, 3], {}]]`). Only `Annotated` can wrap other generic types.
+Note that arbitrary nesting of types is not supported (Like in `list[Annotated[Literal[1, 2, 3]]]`). Only `Annotated` can wrap other generic types.
 
 ## Requirements
 No dependencies are needed, only pure Python ≥ `3.10`.

@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from collections.abc import Iterable, Sequence
 from typing import Any, Literal, Annotated, Tuple, Union, List
 from enum import Enum
+from dataclasses import asdict
 import inspect
 from sicli.utils import (
     isgeneric,
@@ -13,6 +14,7 @@ from sicli.utils import (
 )
 from sicli.types import AnyCallable
 from sicli.exceptions import SicliException
+from sicli.argument import Arg
 
 
 class Sicli:
@@ -90,7 +92,7 @@ class Sicli:
             if (
                 kwargs.get("default") is not None
                 and kwargs.get("nargs") != "*"
-                and not kwargs.get("action") == "store_true"
+                and kwargs.get("action") != "store_true"
             ):
                 # Always respect the existence of default value
                 # (except when flag and when multiple arguments)
@@ -122,7 +124,8 @@ class Sicli:
         if origin is not Annotated:
             return type_annotation, [], {}
 
-        type_ = args[0]
+        args = list(args)
+        type_ = args.pop(0)
         varargs = []
         kwargs = {}
 
@@ -131,15 +134,20 @@ class Sicli:
                 kwargs["help"] = arg
             elif isinstance(arg, list):
                 varargs.extend(arg)
-            elif isinstance(arg, dict):
-                kwargs |= arg
+            elif isinstance(arg, Arg):
+                kwargs |= asdict(arg)
+            else:
+                raise SicliException(
+                    f"`Annotated` arguments after the first one must be values of"
+                    "type `str`, `list`, or `sicli.Arg`, got {arg} instead"
+                )
 
         return type_, varargs, kwargs
 
     def _add_single_command(self, function: AnyCallable) -> None:
         parser = self._parser
         self._consume_function(function, parser)
-        parser.set_defaults(__function=function)
+        parser.set_defaults(__sicli_function=function)
 
     def _add_multiple_commands(self, functions: Iterable[AnyCallable]) -> None:
         subparsers = self._parser.add_subparsers()
@@ -149,7 +157,7 @@ class Sicli:
                 help=inspect.getdoc(function) or None,
             )
             self._consume_function(function, parser)
-            parser.set_defaults(__function=function)
+            parser.set_defaults(__sicli_function=function)
 
     def add_commands(self, functions: AnyCallable | Iterable[AnyCallable]) -> None:
         if isinstance(functions, Iterable):
@@ -160,7 +168,7 @@ class Sicli:
     def __call__(self, args: list[str] | None = None) -> Any:
         parsed_args = self._parser.parse_args(args)
         kwargs = vars(parsed_args)
-        function: AnyCallable | None = kwargs.pop("__function", None)
+        function: AnyCallable | None = kwargs.pop("__sicli_function", None)
         if function is None:
             self._parser.print_help()
             sys.exit()
