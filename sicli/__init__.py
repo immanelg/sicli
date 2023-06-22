@@ -1,4 +1,4 @@
-"""A package to build simple command line tools in the declarative way."""
+"""Build simple command line tools easily and declaratively"""
 
 from sicli.main import run, Sicli
 
