@@ -1,7 +1,7 @@
 import sys
 from argparse import ArgumentParser
 from collections.abc import Iterable, Sequence
-from typing import Any, Literal, Annotated, Tuple, Union, List
+from typing import Any, Literal, Annotated, Tuple, Union, List, TypeVar
 from enum import Enum
 import inspect
 from .utils import (
@@ -22,7 +22,7 @@ class Sicli:
     def __init__(self, **argument_parser_kwargs: Any) -> None:
         self._parser = ArgumentParser(**(argument_parser_kwargs or {}))
 
-    def _add_function(self, function: AnyCallable, parser) -> None:
+    def _feed_function_to_parser(self, function: AnyCallable, parser) -> None:
         """Parses function signature and adding arguments to parser."""
         for param in get_signature(function).parameters.values():
             is_positional = param.kind == param.POSITIONAL_OR_KEYWORD
@@ -139,7 +139,7 @@ class Sicli:
 
     def _add_single_command(self, function: AnyCallable) -> None:
         parser = self._parser
-        self._add_function(function, parser)
+        self._feed_function_to_parser(function, parser)
         parser.set_defaults(__function=function)
 
     def _add_multiple_commands(self, functions: Iterable[AnyCallable]) -> None:
@@ -149,7 +149,7 @@ class Sicli:
                 snake_to_lower_kebab_case(function.__name__),
                 help=inspect.getdoc(function) or None,
             )
-            self._add_function(function, parser)
+            self._feed_function_to_parser(function, parser)
             parser.set_defaults(__function=function)
 
     def add_commands(self, functions: AnyCallable | Iterable[AnyCallable]) -> None:
